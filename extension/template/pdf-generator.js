@@ -300,7 +300,7 @@ function buildTemplate(proc, reviews) {
   ${reviewCards}
 
   <div class="report-footer">
-    Shopify Review Sniffer · ${exportDate}
+    Shopify App Review Sniffer · ${exportDate}
   </div>
 </body>
 </html>`;
