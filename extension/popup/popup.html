@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Review Sniffer</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="logo">
+          <img src="../icons/icon16.png" alt="Review Sniffer" />
+          <span>Review Sniffer</span>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="settingsToggle" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+              <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="addBtn" title="Add scrape" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+              <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Settings Panel -->
+      <div class="panel hidden" id="settingsPanel">
+        <div class="field">
+          <label>Auto-delete after export (minutes, 0 = never)</label>
+          <input type="number" id="autoDeleteInput" min="0" max="60" value="5" />
+        </div>
+        <button class="btn btn-sm btn-primary" id="saveSettings">Save</button>
+      </div>
+
+      <!-- Add Scrape Panel -->
+      <div class="panel hidden" id="addPanel">
+        <div class="add-app-name" id="addAppName"></div>
+        <div class="field">
+          <label>Keyword filter (leave empty for all reviews)</label>
+          <input type="text" id="keywordInput" placeholder="e.g. amazing, support..." autocomplete="off" />
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="startBtn">Start</button>
+          <button class="btn btn-ghost" id="cancelAdd">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Process List -->
+      <div class="section-label">Processes</div>
+      <div id="processList" class="process-list">
+        <div class="empty-state">Navigate to a Shopify app page and click + to start.</div>
+      </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,211 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  color: #1a1a2e;
+  background: #f6f6f7;
+  width: 340px;
+  min-height: 100px;
+}
+
+.container {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #008060;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+.icon-btn:hover:not(:disabled) { background: #e5e7eb; color: #1a1a2e; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* Panels (settings + add) */
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.panel.hidden { display: none; }
+
+.add-app-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #008060;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.field input {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: #008060; }
+
+/* Section label */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Process list */
+.process-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-state {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 16px 8px;
+}
+
+.process-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.process-card.done { border-left: 3px solid #008060; }
+.process-card.in_progress { border-left: 3px solid #f59e0b; }
+.process-card.failed { border-left: 3px solid #b91c1c; }
+
+.process-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.process-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1a1a2e;
+  line-height: 1.3;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge.in_progress { background: #fef3c7; color: #92400e; }
+.badge.done { background: #d1fae5; color: #065f46; }
+.badge.failed { background: #fee2e2; color: #b91c1c; }
+
+.process-meta {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.progress-bar-wrap {
+  background: #f3f4f6;
+  border-radius: 4px;
+  height: 4px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.process-card.done .progress-bar { background: #008060; }
+
+.process-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* Buttons */
+.btn {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  transition: opacity 0.15s;
+}
+.btn:hover:not(:disabled) { opacity: 0.85; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn-sm { font-size: 11px; padding: 4px 8px; }
+
+.btn-primary { background: #008060; color: #fff; }
+.btn-export { background: #1a1a2e; color: #fff; }
+.btn-danger { background: #fee2e2; color: #b91c1c; }
+.btn-ghost { background: #f3f4f6; color: #6b7280; }
