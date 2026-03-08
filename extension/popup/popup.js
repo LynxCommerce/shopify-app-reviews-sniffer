@@ -1,4 +1,4 @@
-import { generatePDF } from "../template/pdf-generator.js";
+import { buildHTMLReport } from "../template/pdf-generator.js";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentAppSlug = null;
@@ -158,7 +158,7 @@ function renderProcesses(processes) {
         <div class="process-card ${p.status}" data-id="${p.processId}">
           <div class="process-header">
             <span class="process-name">${escHtml(p.appName)}</span>
-            <span class="badge ${p.status}">${p.status === "done" ? "Done" : p.status === "failed" ? "Failed" : "Scraping"}</span>
+            <span class="badge ${p.status}">${p.status === "done" ? "Done" : p.status === "failed" ? "Failed" : "Sniffing..."}</span>
           </div>
           <div class="process-meta">
             <span>Keyword: ${keyword}</span>
@@ -176,7 +176,14 @@ function renderProcesses(processes) {
           <div class="process-actions">
             ${
               p.status === "done"
-                ? `<button class="btn btn-export" data-action="export" data-id="${p.processId}">Export PDF</button>`
+                ? `<div class="export-wrap">
+                    <button class="btn btn-export export-toggle" data-id="${p.processId}">Export ▾</button>
+                    <div class="export-menu" hidden>
+                      <button data-action="export" data-format="pdf" data-id="${p.processId}" title="Cmd/Ctrl+P to print PDF">PDF Report</button>
+                      <button data-action="export" data-format="csv" data-id="${p.processId}">CSV</button>
+                      <button data-action="export" data-format="json" data-id="${p.processId}">JSON</button>
+                    </div>
+                  </div>`
                 : ""
             }
             <button class="btn btn-danger" data-action="delete" data-id="${p.processId}">Delete</button>
@@ -185,15 +192,25 @@ function renderProcesses(processes) {
     })
     .join("");
 
+  processList.querySelectorAll(".export-toggle").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const menu = btn.nextElementSibling;
+      const isOpen = !menu.hidden;
+      // close all open menus first
+      processList.querySelectorAll(".export-menu").forEach((m) => (m.hidden = true));
+      menu.hidden = isOpen;
+    });
+  });
   processList.querySelectorAll("[data-action='export']").forEach((btn) => {
-    btn.addEventListener("click", () => handleExport(btn.dataset.id));
+    btn.addEventListener("click", () => handleExport(btn.dataset.id, btn.dataset.format));
   });
   processList.querySelectorAll("[data-action='delete']").forEach((btn) => {
     btn.addEventListener("click", () => handleDelete(btn.dataset.id));
   });
 }
 
-async function handleExport(processId) {
+async function handleExport(processId, format) {
   const { processes } = await send("GET_PROCESSES");
   const proc = processes.find((p) => p.processId === processId);
   if (!proc) return;
@@ -203,12 +220,53 @@ async function handleExport(processId) {
     send("GET_SETTINGS"),
   ]);
 
+  const slug = proc.appSlug;
+  const data = reviews || [];
+
+  if (format === "json") {
+    const payload = JSON.stringify(
+      { meta: { appName: proc.appName, appSlug: slug, keyword: proc.keyword || null, exportedAt: new Date().toISOString(), totalReviews: data.length, totalPages: proc.totalPages }, reviews: data.map(({ reviewerName, reviewContent, country, date, stars }) => ({ reviewerName, reviewContent, country, date, stars })) },
+      null, 2
+    );
+    triggerDownload(`${slug}-reviews.json`, payload, "application/json");
+  } else if (format === "csv") {
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      ["Reviewer", "Stars", "Country", "Date", "Review"].join(","),
+      ...data.map((r) => [escape(r.reviewerName), r.stars, escape(r.country), escape(r.date), escape(r.reviewContent)].join(",")),
+    ];
+    triggerDownload(`${slug}-reviews.csv`, rows.join("\n"), "text/csv");
+  } else {
+    // Schedule delete first — opening the tab closes the popup
+    if (settings.autoDeleteMinutes > 0) {
+      await send("SCHEDULE_DELETE", { processId, minutes: settings.autoDeleteMinutes });
+    }
+    const html = buildHTMLReport(proc, data);
+    const blob = new Blob([html], { type: "text/html" });
+    const blobUrl = URL.createObjectURL(blob);
+    chrome.tabs.create({ url: blobUrl }, (tab) => {
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.addEventListener("load", () => setTimeout(() => window.print(), 300)),
+      });
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    });
+    return; // popup closes after tabs.create — skip the schedule below
+  }
+
   if (settings.autoDeleteMinutes > 0) {
     await send("SCHEDULE_DELETE", { processId, minutes: settings.autoDeleteMinutes });
   }
+}
 
-  // generatePDF opens a new tab which closes the popup — must be last since the alaram is async
-  generatePDF(proc, reviews || []);
+function triggerDownload(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 async function handleDelete(processId) {
@@ -238,6 +296,11 @@ function escHtml(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+
+// Close export menus when clicking outside
+document.addEventListener("click", () => {
+  processList.querySelectorAll(".export-menu").forEach((m) => (m.hidden = true));
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {

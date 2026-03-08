@@ -1,24 +1,9 @@
 /**
- * Generates a printable HTML page from scraping results and opens it in a new tab.
- * The user can then use Ctrl+P / Cmd+P to save as PDF.
+ * Builds the HTML report string for a process and its reviews.
+ * Can be used to trigger a direct file download.
  */
-export function generatePDF(process, reviews) {
-  const html = buildTemplate(process, reviews);
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  chrome.tabs.create({ url }, (tab) => {
-    // Trigger print dialog after the tab loads
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        window.addEventListener("load", () => {
-          setTimeout(() => window.print(), 500);
-        });
-      },
-    });
-    // Revoke blob URL after a delay
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  });
+export function buildHTMLReport(process, reviews) {
+  return buildTemplate(process, reviews);
 }
 
 function starSVG(count) {
