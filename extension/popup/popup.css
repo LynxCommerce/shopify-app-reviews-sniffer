@@ -84,10 +84,9 @@ body {
   gap: 4px;
 }
 .field label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: #6b7280;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .field input {
