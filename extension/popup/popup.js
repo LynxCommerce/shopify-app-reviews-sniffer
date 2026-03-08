@@ -22,6 +22,13 @@ const processList = document.getElementById("processList");
 // ── Tab detection ─────────────────────────────────────────────────────────────
 const SYSTEM_PATHS = ["search", "categories", "collections", "partners"];
 
+/**
+ * Detects the currently active tab and extracts the Shopify app slug from its URL.
+ * If the slug is not one of the system paths, it sets the currentAppSlug state variable.
+ * Additionally, it tries to extract the app name from the page's JSON-LD and sets the currentAppName state variable.
+ * If the extraction fails, it sets the currentAppName to the formatted slug.
+ * Finally, it enables the add button and sets its title to include the app name.
+ */
 async function detectCurrentTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -62,6 +69,11 @@ async function detectCurrentTab() {
   }
 }
 
+/**
+ * Formats a slug by replacing hyphens with spaces and capitalizing the first letter of each word.
+ * @param {string} slug The slug to format.
+ * @returns {string} The formatted slug.
+ */
 function formatSlug(slug) {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
