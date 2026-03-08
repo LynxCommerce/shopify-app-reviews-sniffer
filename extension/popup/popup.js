@@ -198,15 +198,17 @@ async function handleExport(processId) {
   const proc = processes.find((p) => p.processId === processId);
   if (!proc) return;
 
-  const { reviews } = await send("GET_REVIEWS", { processId });
-  generatePDF(proc, reviews || []);
+  const [{ reviews }, { settings }] = await Promise.all([
+    send("GET_REVIEWS", { processId }),
+    send("GET_SETTINGS"),
+  ]);
 
-  const { settings } = await send("GET_SETTINGS");
   if (settings.autoDeleteMinutes > 0) {
     await send("SCHEDULE_DELETE", { processId, minutes: settings.autoDeleteMinutes });
   }
 
-  await loadProcesses();
+  // generatePDF opens a new tab which closes the popup — must be last since the alaram is async
+  generatePDF(proc, reviews || []);
 }
 
 async function handleDelete(processId) {
