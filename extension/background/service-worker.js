@@ -1,6 +1,8 @@
 import { saveProcess, getProcess, getAllProcesses, deleteProcess, saveReviews, getReviewsByProcess } from "./db.js";
 
 const activeScrapers = new Set();
+const REQUEST_INTERVAL = 1000 / 3; // 3 requests per second
+let lastRequestTime = 0;
 
 // ── Alarm keepalive ───────────────────────────────────────────────────────────
 chrome.alarms.create("keepalive", { periodInMinutes: 0.4 });
@@ -139,7 +141,7 @@ async function runScrapingLoop(processId) {
       let retries = 0;
       while (retries < 3) {
         try {
-          pageData = await fetchPage(proc.appSlug, proc.currentPage);
+          pageData = await rateLimitedFetch(proc.appSlug, proc.currentPage);
           break;
         } catch (err) {
           retries++;
@@ -186,7 +188,9 @@ async function runScrapingLoop(processId) {
       });
 
       // Rate limit: max 3 requests per second
-      await sleep(1000);
+      let numberOfProcesses = (await getAllProcesses()).filter((p) => p.status === "in_progress").length;
+      let delay = Math.max(1000 * numberOfProcesses / 3, 1000);
+      await sleep(delay);
     }
   } finally {
     activeScrapers.delete(processId);
@@ -220,6 +224,14 @@ async function fetchPage(appSlug, pageNumber) {
   const result = await chrome.runtime.sendMessage({ type: "FETCH_PAGE", url });
   if (result?.error) throw new Error(result.error);
   return result;
+}
+
+async function rateLimitedFetch(appSlug, pageNumber) {
+  const now = Date.now();
+  const waitTime = Math.max(REQUEST_INTERVAL - (now - lastRequestTime), 0);
+  await sleep(waitTime);
+  lastRequestTime = now;
+  return await fetchPage(appSlug, pageNumber);
 }
 
 /**
