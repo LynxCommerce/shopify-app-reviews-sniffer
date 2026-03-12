@@ -154,11 +154,14 @@ function renderProcesses(processes) {
         ? `Page ${Math.min(p.currentPage, p.totalPages)} / ${p.totalPages}`
         : "Starting…";
 
+      const badgeLabel = { done: "Done", failed: "Failed", in_progress: "Sniffing...", waiting: "Queued" }[p.status] ?? p.status;
+      const showBar = p.status === "in_progress" || p.status === "waiting";
+
       return `
         <div class="process-card ${p.status}" data-id="${p.processId}">
           <div class="process-header">
             <span class="process-name">${escHtml(p.appName)}</span>
-            <span class="badge ${p.status}">${p.status === "done" ? "Done" : p.status === "failed" ? "Failed" : "Sniffing..."}</span>
+            <span class="badge ${p.status}">${badgeLabel}</span>
           </div>
           <div class="process-meta">
             <span>Keyword: ${keyword}</span>
@@ -168,11 +171,7 @@ function renderProcesses(processes) {
                 : `${pageInfo} · ${p.reviewCount} so far`
             }</span>
           </div>
-          ${
-            p.status === "in_progress"
-              ? `<div class="progress-bar-wrap"><div class="progress-bar" style="width:${progressWidth}%"></div></div>`
-              : ""
-          }
+          ${showBar ? `<div class="progress-bar-wrap"><div class="progress-bar" style="width:${progressWidth}%"></div></div>` : ""}
           <div class="process-actions">
             ${
               p.status === "done"
@@ -186,6 +185,7 @@ function renderProcesses(processes) {
                   </div>`
                 : ""
             }
+            ${p.status === "failed" ? `<button class="btn btn-ghost btn-replay" data-action="replay" data-id="${p.processId}" title="Retry">↺</button>` : ""}
             <button class="btn btn-danger" data-action="delete" data-id="${p.processId}">Delete</button>
           </div>
         </div>`;
@@ -204,6 +204,9 @@ function renderProcesses(processes) {
   });
   processList.querySelectorAll("[data-action='export']").forEach((btn) => {
     btn.addEventListener("click", () => handleExport(btn.dataset.id, btn.dataset.format));
+  });
+  processList.querySelectorAll("[data-action='replay']").forEach((btn) => {
+    btn.addEventListener("click", () => handleReplay(btn.dataset.id));
   });
   processList.querySelectorAll("[data-action='delete']").forEach((btn) => {
     btn.addEventListener("click", () => handleDelete(btn.dataset.id));
@@ -269,6 +272,11 @@ function triggerDownload(filename, content, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+async function handleReplay(processId) {
+  await send("REPLAY_PROCESS", { processId });
+  loadProcesses();
+}
+
 async function handleDelete(processId) {
   await send("DELETE_PROCESS", { processId });
   loadProcesses();
@@ -277,7 +285,7 @@ async function handleDelete(processId) {
 // ── Live updates from background ──────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message) => {
   if (
-    ["PROCESS_DONE", "PROCESS_PROGRESS", "PROCESS_DELETED", "PROCESS_FAILED"].includes(
+    ["PROCESS_DONE", "PROCESS_PROGRESS", "PROCESS_DELETED", "PROCESS_FAILED", "PROCESS_WAITING"].includes(
       message.type
     )
   ) {

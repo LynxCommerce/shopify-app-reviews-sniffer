@@ -134,6 +134,7 @@ body {
 
 .process-card.done { border-left: 3px solid #008060; }
 .process-card.in_progress { border-left: 3px solid #f59e0b; }
+.process-card.waiting { border-left: 3px solid #93c5fd; }
 .process-card.failed { border-left: 3px solid #b91c1c; }
 
 .process-header {
@@ -159,6 +160,7 @@ body {
   flex-shrink: 0;
 }
 .badge.in_progress { background: #fef3c7; color: #92400e; }
+.badge.waiting { background: #dbeafe; color: #1d4ed8; }
 .badge.done { background: #d1fae5; color: #065f46; }
 .badge.failed { background: #fee2e2; color: #b91c1c; }
 
@@ -183,6 +185,7 @@ body {
   transition: width 0.3s ease;
 }
 .process-card.done .progress-bar { background: #008060; }
+.process-card.waiting .progress-bar { background: #93c5fd; }
 
 .process-actions {
   display: flex;
@@ -209,6 +212,7 @@ body {
 .btn-export { background: #008060; color: #fff; }
 .btn-danger { background: #fee2e2; color: #b91c1c; }
 .btn-ghost { background: #f3f4f6; color: #6b7280; }
+.btn-replay { font-size: 14px; padding: 3px 8px; }
 
 /* Export dropdown */
 .export-wrap {

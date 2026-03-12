@@ -1,7 +1,7 @@
 import { saveProcess, getProcess, getAllProcesses, deleteProcess, saveReviews, getReviewsByProcess } from "./db.js";
 
 const activeScrapers = new Set();
-const REQUEST_INTERVAL = 1000 / 3; // 3 requests per second
+const REQUEST_INTERVAL = 1000 ; // 1 request per second
 let lastRequestTime = 0;
 
 // ── Alarm keepalive ───────────────────────────────────────────────────────────
@@ -10,11 +10,11 @@ chrome.alarms.create("keepalive", { periodInMinutes: 0.4 });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === "keepalive") {
     const processes = await getAllProcesses();
-    for (const proc of processes) {
-      if (proc.status === "in_progress" && !activeScrapers.has(proc.processId)) {
-        runScrapingLoop(proc.processId);
-      }
-    }
+    // Recover an orphaned in_progress runner (SW restart mid-scrape)
+    const orphan = processes.find(p => p.status === "in_progress" && !activeScrapers.has(p.processId));
+    if (orphan) { runScrapingLoop(orphan.processId); return; }
+    // Otherwise promote the next queued item if nothing is running
+    await startNextQueued();
     return;
   }
 
@@ -58,17 +58,20 @@ async function handleMessage(message) {
         (p) =>
           p.appSlug === appSlug &&
           p.keyword === keyword &&
-          (p.status === "in_progress" || p.status === "done")
+          (p.status === "in_progress" || p.status === "waiting" || p.status === "done")
       );
       if (dupe) return { processId: dupe.processId, alreadyExists: true };
 
+      // activeScrapers covers 429-paused processes (DB shows "waiting" but still running in memory)
+      // DB check covers SW restart (activeScrapers cleared but a process is still "in_progress" in DB)
+      const hasActive = activeScrapers.size > 0 || existing.some(p => p.status === "in_progress");
       const processId = `${appSlug}-${Date.now()}`;
       const process = {
         processId,
         appName,
         appSlug,
         keyword,
-        status: "in_progress",
+        status: hasActive ? "waiting" : "in_progress",
         currentPage: 1,
         totalPages: null,
         reviewCount: 0,
@@ -76,7 +79,7 @@ async function handleMessage(message) {
         completedAt: null,
       };
       await saveProcess(process);
-      runScrapingLoop(processId);
+      if (!hasActive) runScrapingLoop(processId);
       return { processId };
     }
 
@@ -109,6 +112,19 @@ async function handleMessage(message) {
       return { settings };
     }
 
+    case "REPLAY_PROCESS": {
+      const proc = await getProcess(message.processId);
+      if (!proc) return { error: "Not found" };
+      proc.status = "waiting";
+      proc.currentPage = 1;
+      proc.reviewCount = 0;
+      proc.totalPages = null;
+      proc.completedAt = null;
+      await saveProcess(proc);
+      await startNextQueued();
+      return { ok: true };
+    }
+
     default:
       return { error: "Unknown message type" };
   }
@@ -130,7 +146,12 @@ async function runScrapingLoop(processId) {
 
   try {
     let proc = await getProcess(processId);
-    if (!proc || proc.status !== "in_progress") return;
+    if (!proc || (proc.status !== "in_progress" && proc.status !== "waiting")) return;
+    // SW restarted during a wait — reset to in_progress and resume
+    if (proc.status === "waiting") {
+      proc.status = "in_progress";
+      await saveProcess(proc);
+    }
 
     while (true) {
       proc = await getProcess(processId);
@@ -144,14 +165,20 @@ async function runScrapingLoop(processId) {
           pageData = await rateLimitedFetch(proc.appSlug, proc.currentPage);
           break;
         } catch (err) {
-          retries++;
-          if (retries >= 3) {
-            proc.status = "failed";
-            await saveProcess(proc);
-            notifyPopup({ type: "PROCESS_FAILED", processId, reason: err.message });
-            return;
+          if (err.message.includes("429")) {
+            // Rate limited — back off silently, stay in_progress visually
+            lastRequestTime = Date.now() + 60000;
+            await sleep(60000);
+          } else {
+            retries++;
+            if (retries >= 3) {
+              proc.status = "failed";
+              await saveProcess(proc);
+              notifyPopup({ type: "PROCESS_FAILED", processId, reason: err.message });
+              return;
+            }
+            await sleep(5000 * retries);
           }
-          await sleep(3000 * retries);
         }
       }
 
@@ -187,14 +214,20 @@ async function runScrapingLoop(processId) {
         reviewCount: proc.reviewCount,
       });
 
-      // Rate limit: max 3 requests per second
-      let numberOfProcesses = (await getAllProcesses()).filter((p) => p.status === "in_progress").length;
-      let delay = Math.max(1000 * numberOfProcesses / 3, 1000);
-      await sleep(delay);
     }
   } finally {
     activeScrapers.delete(processId);
+    await startNextQueued();
   }
+}
+
+async function startNextQueued() {
+  if (activeScrapers.size > 0) return; // something is running (even if 429-paused in DB as "waiting")
+  const all = await getAllProcesses();
+  if (all.some(p => p.status === "in_progress")) return; // guard for SW restart (activeScrapers is empty but DB says running)
+  const next = all.filter(p => p.status === "waiting" && !activeScrapers.has(p.processId)).sort((a, b) => a.createdAt - b.createdAt)[0];
+  if (next) runScrapingLoop(next.processId);
+  return;
 }
 
 /**
@@ -228,10 +261,10 @@ async function fetchPage(appSlug, pageNumber) {
 
 async function rateLimitedFetch(appSlug, pageNumber) {
   const now = Date.now();
-  const waitTime = Math.max(REQUEST_INTERVAL - (now - lastRequestTime), 0);
-  await sleep(waitTime);
-  lastRequestTime = now;
-  return await fetchPage(appSlug, pageNumber);
+  const scheduledAt = Math.max(now, lastRequestTime + REQUEST_INTERVAL);
+  lastRequestTime = scheduledAt; // reserve slot synchronously before any await
+  await sleep(scheduledAt - now);
+  return fetchPage(appSlug, pageNumber);
 }
 
 /**
