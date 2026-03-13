@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Shopify App Review Sniffer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scrape and export keyword-filtered reviews from Shopify app pages",
   "permissions": [
     "storage",
@@ -12,7 +12,7 @@
     "offscreen"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://apps.shopify.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
