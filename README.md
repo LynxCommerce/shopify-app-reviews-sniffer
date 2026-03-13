@@ -2,10 +2,7 @@
 
 A Chrome extension (Manifest V3) that scrapes keyword-filtered reviews from Shopify app pages and exports them as a printable PDF report.
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/b8be6d54-a580-47d0-826f-73b1bdc01d1d" width="40%" />
-  <img src="https://github.com/user-attachments/assets/a417457f-5228-4090-a2ea-c88d3d1ede0c" width="41%" />
-</div>
+<img src="https://github.com/user-attachments/assets/a417457f-5228-4090-a2ea-c88d3d1ede0c"/>
 
 ---
 
