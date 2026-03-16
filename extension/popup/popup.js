@@ -63,7 +63,7 @@ async function detectCurrentTab() {
     }
 
     addBtn.disabled = false;
-    addBtn.title = `Add scrape for ${currentAppName}`;
+    addBtn.title = t("addScrapeFor", currentAppName);
   } catch {
     // Not on a supported page — add button stays disabled
   }
@@ -115,7 +115,7 @@ cancelAdd.addEventListener("click", () => {
 startBtn.addEventListener("click", async () => {
   if (!currentAppSlug) return;
   startBtn.disabled = true;
-  startBtn.textContent = "Starting…";
+  startBtn.textContent = t("startingBtn");
 
   await send("START_SCRAPE", {
     appName: currentAppName,
@@ -125,7 +125,7 @@ startBtn.addEventListener("click", async () => {
 
   addPanel.classList.add("hidden");
   startBtn.disabled = false;
-  startBtn.textContent = "Start";
+  startBtn.textContent = t("start");
 
   // Immediately show the new process — no waiting for the poll interval
   await loadProcesses();
@@ -139,7 +139,7 @@ async function loadProcesses() {
 
 function renderProcesses(processes) {
   if (!processes.length) {
-    processList.innerHTML = `<div class="empty-state">Navigate to a Shopify app page and click + to start.</div>`;
+    processList.innerHTML = `<div class="empty-state">${t("emptyState")}</div>`;
     return;
   }
 
@@ -149,12 +149,12 @@ function renderProcesses(processes) {
         ? Math.round((p.currentPage / p.totalPages) * 100)
         : 0;
       const progressWidth = p.status === "done" ? 100 : Math.max(progress, 5);
-      const keyword = p.keyword ? `<b>${escHtml(p.keyword)}</b>` : "All reviews";
+      const keyword = p.keyword ? `<b>${escHtml(p.keyword)}</b>` : t("allReviews");
       const pageInfo = p.totalPages
-        ? `Page ${Math.min(p.currentPage, p.totalPages)} / ${p.totalPages}`
-        : "Starting…";
+        ? t("pageInfo", String(Math.min(p.currentPage, p.totalPages)), String(p.totalPages))
+        : t("starting");
 
-      const badgeLabel = { done: "Done", failed: "Failed", in_progress: "Sniffing...", waiting: "Queued" }[p.status] ?? p.status;
+      const badgeLabel = { done: t("badgeDone"), failed: t("badgeFailed"), in_progress: t("badgeSniffing"), waiting: t("badgeQueued") }[p.status] ?? p.status;
       const showBar = p.status === "in_progress" || p.status === "waiting";
 
       return `
@@ -164,11 +164,11 @@ function renderProcesses(processes) {
             <span class="badge ${p.status}">${badgeLabel}</span>
           </div>
           <div class="process-meta">
-            <span>Keyword: ${keyword}</span>
+            <span>${t("keyword")}: ${keyword}</span>
             <span>${
               p.status === "done"
-                ? `${p.reviewCount} reviews found`
-                : `${pageInfo} · ${p.reviewCount} so far`
+                ? t("reviewsFound", String(p.reviewCount))
+                : `${pageInfo} · ${t("soFar", String(p.reviewCount))}`
             }</span>
           </div>
           ${showBar ? `<div class="progress-bar-wrap"><div class="progress-bar" style="width:${progressWidth}%"></div></div>` : ""}
@@ -176,17 +176,17 @@ function renderProcesses(processes) {
             ${
               p.status === "done"
                 ? `<div class="export-wrap">
-                    <button class="btn btn-export export-toggle" data-id="${p.processId}">Export ▾</button>
+                    <button class="btn btn-export export-toggle" data-id="${p.processId}">${t("exportBtn")}</button>
                     <div class="export-menu" hidden>
-                      <button data-action="export" data-format="pdf" data-id="${p.processId}" title="Cmd/Ctrl+P to print PDF">PDF Report</button>
-                      <button data-action="export" data-format="csv" data-id="${p.processId}">CSV</button>
-                      <button data-action="export" data-format="json" data-id="${p.processId}">JSON</button>
+                      <button data-action="export" data-format="pdf" data-id="${p.processId}" title="Cmd/Ctrl+P to print PDF">${t("exportPdf")}</button>
+                      <button data-action="export" data-format="csv" data-id="${p.processId}">${t("exportCsv")}</button>
+                      <button data-action="export" data-format="json" data-id="${p.processId}">${t("exportJson")}</button>
                     </div>
                   </div>`
                 : ""
             }
-            ${p.status === "failed" ? `<button class="btn btn-ghost btn-replay" data-action="replay" data-id="${p.processId}" title="Retry">↺</button>` : ""}
-            <button class="btn btn-danger" data-action="delete" data-id="${p.processId}">Delete</button>
+            ${p.status === "failed" ? `<button class="btn btn-ghost btn-replay" data-action="replay" data-id="${p.processId}" title="${t("retry")}">↺</button>` : ""}
+            <button class="btn btn-danger" data-action="delete" data-id="${p.processId}">${t("deleteBtn")}</button>
           </div>
         </div>`;
     })
@@ -293,6 +293,21 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const t = (key, ...subs) => chrome.i18n.getMessage(key, subs) || key;
+
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function send(type, extra = {}) {
   return chrome.runtime.sendMessage({ type, ...extra });
@@ -312,6 +327,7 @@ document.addEventListener("click", () => {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
+  applyI18n();
   await detectCurrentTab();
   await loadSettings();
   await loadProcesses();

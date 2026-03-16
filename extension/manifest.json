@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Shopify App Review Sniffer",
-  "version": "1.0.1",
+  "name": "__MSG_appTitle__",
   "description": "Scrape and export keyword-filtered reviews from Shopify app pages",
+  "version": "1.0.2",
+  "default_locale": "en",
   "permissions": [
     "storage",
     "unlimitedStorage",
