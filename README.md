@@ -1,6 +1,6 @@
 # Shopify Review Sniffer — Chrome Extension
 
-### status: 🟡 In Review @[chrome web store](https://chromewebstore.google.com/)
+### status: 🟢 Live @[chrome web store](https://chromewebstore.google.com/detail/dffjhgacfhgmogokepaeempdbffbkjbc)
 
 A Chrome extension (Manifest V3) that scrapes keyword-filtered reviews from Shopify app pages and exports them as a printable PDF report.
 
